@@ -8,6 +8,7 @@ When you're ready to merge your branch into master, just execute: `lgtm`
 git clone https://github.com/israel-maloney/lgtm.git
 cd lgtm
 ./install
+. ~/.bash_profile
 ```
 
 # Usage
