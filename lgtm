@@ -1,0 +1,203 @@
+#!/bin/bash
+
+# Setup some colors for nice output.
+BOLD() { echo -e -n "\033[8;1m$*"; }
+
+RED() { echo -e -n "\033[8;91m$*"; }
+
+BLUE() { echo -e -n "\033[8;36m$*"; }
+
+GREEN() { echo -e -n "\033[8;32m$*"; }
+RESET() { echo -e -n "\033[0m$*"; }
+
+confirm() {
+  # call with a prompt string or use a default
+  read -r -p "${1:-Type yes or no [y/N]} " response
+  case "$response" in
+    [yY][eE][sS]|[yY]) 
+      true
+      ;;
+    *)
+      false
+      ;;
+  esac
+}
+
+paranoid() {
+  if [ -n "$PARANOID" ]; then
+    BOLD
+    echo "continue?"
+    RESET
+    if ! confirm; then
+      git checkout - >/dev/null 2>&1
+      git checkout - >/dev/null 2>&1
+      echo "* exiting, no changes have been made *"
+      exit 0
+    fi
+  fi
+}
+
+
+# Fetch remote tags and branches to keep up to date with remote.
+
+
+# We'll default to the master branch unless we are working in the patch repo.
+MASTER_BRANCH=master
+
+# First sanity check that we are on a git branch.
+if ! git status >/dev/null 2>&1; then
+  RED 
+  echo "The current directory is not a valid git repo, check yo self!" 
+  RESET
+else
+  WORKING_DIR=$(basename $(git rev-parse --show-toplevel))
+  if [ $WORKING_DIR == "patch" ]; then
+    MASTER_BRANCH=develop
+  fi
+fi
+
+# Present the user with a choice of local branches to merge to master giving an option for cancel.
+git checkout $MASTER_BRANCH >/dev/null 2>&1
+
+echo "Choose the branch to merge into $MASTER_BRANCH."
+BOLD
+git branch | sed -e "s/\* $MASTER_BRANCH//" | sort
+RESET
+echo -n "Type branch name and press [ENTER]: "
+read MY_BRANCH
+
+if ! git rev-parse --verify $MY_BRANCH >/dev/null 2>&1; then
+  RED 
+  echo "<$MY_BRANCH> is not a valid branch!"
+  RESET
+  git checkout - >/dev/null 2>&1
+  echo "* exiting, no changes have been made *"
+  exit 1
+fi
+
+BLUE
+echo "You are choosing to merge $MY_BRANCH into $MASTER_BRANCH, proceed?"
+RESET
+if ! confirm; then
+  git checkout - >/dev/null 2>&1
+  echo "* exiting, no changes have been made *"
+  exit 0
+fi
+
+
+# Fail if the branch has any uncommitted changes or unpushed commits.
+git checkout $MY_BRANCH >/dev/null 2>&1
+
+# Does the branch have uncommited changes?
+if ! git diff-index --quiet HEAD -- 2>&1; then
+  RED
+  echo "$MY_BRANCH is not ready, looks like you've got some uncommited changes." 
+  RESET
+  BOLD 
+  echo "git commit -a"
+  RESET
+  git checkout - >/dev/null 2>&1
+  echo "* exiting, no changes have been made *"
+  exit 1
+fi
+
+# Does the branch need to be pushed?
+if ! git diff --stat origin/$MY_BRANCH >/dev/null 2>&1; then
+  RED
+  echo "$MY_BRANCH is not ready, looks like you haven't set the upstream origin."
+  RESET
+  BOLD
+  echo "git push --set-upstream origin $MY_BRANCH"
+  RESET
+  git checkout - >/dev/null 2>&1
+  echo "* exiting, no changes have been made *"
+  exit 1
+fi
+
+DIFFERENCES=$(git diff --stat origin/$MY_BRANCH)
+if [[ -n "$DIFFERENCES" ]]; then
+  RED
+  echo "$MY_BRANCH is not ready, looks like you've got some unpushed commits." 
+  RESET
+  BOLD
+  echo "git push"
+  RESET
+  git checkout - >/dev/null 2>&1
+  echo "* exiting, no changes have been made *"
+  exit 1
+fi
+
+# Checkout the master branch and update it to head.
+BLUE
+echo "git checkout $MASTER_BRANCH"
+RESET
+paranoid
+git checkout $MASTER_BRANCH
+
+BLUE
+echo "git pull --rebase origin $MASTER_BRANCH"
+RESET
+paranoid
+git pull --rebase origin $MASTER_BRANCH
+
+# Checkout the target branch, squash and merge.
+BLUE
+echo "git checkout $MY_BRANCH"
+RESET
+paranoid
+git checkout $MY_BRANCH
+
+BLUE
+echo "git rebase -i origin/$MASTER_BRANCH"
+RESET
+paranoid
+git rebase -i origin/$MASTER_BRANCH
+
+BLUE
+echo "git push origin $MY_BRANCH --force"
+RESET
+paranoid
+git push origin $MY_BRANCH --force
+
+# Now let's merge our changes into the master branch.
+BLUE
+echo "git checkout $MASTER_BRANCH"
+RESET
+paranoid
+git checkout $MASTER_BRANCH
+
+BLUE
+echo "git merge --ff-only $MY_BRANCH"
+RESET
+paranoid
+git merge --ff-only $MY_BRANCH
+
+BLUE
+echo "git push origin $MASTER_BRANCH"
+RESET
+paranoid
+git push origin $MASTER_BRANCH 
+
+
+# Finally, cleanup our branch both locally and remote.
+BLUE
+echo "git branch -d $MY_BRANCH"
+RESET
+paranoid
+git branch -d $MY_BRANCH
+
+BLUE
+echo "git push origin --delete $MY_BRANCH"
+RESET
+paranoid
+git push origin --delete $MY_BRANCH
+
+BLUE
+echo "git fetch origin -p"
+RESET
+paranoid
+git fetch origin -p
+
+GREEN
+echo "All done!"
+RESET
