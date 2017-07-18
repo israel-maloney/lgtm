@@ -1,7 +1,8 @@
-# Overview 
+# LGTM 
 lgtm is a development helper script for merging changes to master. 
 When you're ready to merge your branch into master, just execute: `lgtm`
 
+[![asciicast](https://asciinema.org/a/JCKueQxZS0qOQSmOUxulHEHyw.png)](https://asciinema.org/a/JCKueQxZS0qOQSmOUxulHEHyw)
 
 # Installation
 ```
