@@ -2,11 +2,8 @@
 
 # Setup some colors for nice output.
 BOLD() { echo -e -n "\033[8;1m$*"; }
-
 RED() { echo -e -n "\033[8;91m$*"; }
-
 BLUE() { echo -e -n "\033[8;36m$*"; }
-
 GREEN() { echo -e -n "\033[8;32m$*"; }
 RESET() { echo -e -n "\033[0m$*"; }
 
