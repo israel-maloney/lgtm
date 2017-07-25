@@ -13,7 +13,7 @@ cp lgtm/lgtm /usr/local/bin
 ```
 
 # Configuration
-By default lgtm merges changes to from your branch into a branch named master.
+By default lgtm merges changes from your branch into a branch named master.
 This can be overridden on a repo basis via lgtm's config file `~/.lgtm/config.json`
 For example, let's say the we have a repo name rexrepo and pull requests are merged
 to a branch named development (rather than master).
@@ -23,7 +23,7 @@ Simply add an entry to ~/.lgtm/config.json for mapping rexrepo to development.
 {
   "rexrepo": "development"
 }
-``
+```
 
 # Usage
 lgtm runs in caution mode by default and will prompt you for confirmation prior
